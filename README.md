@@ -2,7 +2,7 @@
 
 ## 介绍
 
-`gudp` `godot`客户端库, 提供可靠`udp` 和 `rpc`等功能。
+[gudp](https://github.com/rr13k/gudp) `godot`客户端库, 提供可靠`udp` 和 `rpc`等功能。
 
 ## 安装方法
 
