@@ -7,7 +7,7 @@ func _ready():
 	gudpClient.onReceiveMessage.connect(record)
 
 func _process(_deal):
-    # must!
+	# must!
 	gudpClient.onRecord()
 	
 # on server send msg~
@@ -15,6 +15,6 @@ func record(resp:PackedByteArray):
 	print("接收到了消息", resp)
 
 func Login(username:String, password:String):
-    gudpClient.SendMessage("ad22")
+	gudpClient.SendMessage("ad22")
 	pass
 	

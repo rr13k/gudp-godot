@@ -8,12 +8,15 @@ const resend_max:int = 3
 signal onReceiveConfirmationMessage(ack:int)
 signal onReceiveMessage(bytes: PackedByteArray)
 
+var heartbeat_interval :int = 300# ms
+
 var ip :String
 var port :int
 var socket :PacketPeerUDP
 var connected = false
 var session_id :PackedByteArray
 var __rpc_id :int
+var lastHeartbeat: int
 
 # 定长数组
 var rpcResponseList : Array:
@@ -39,6 +42,7 @@ func _init(ip:String,port:int):
 	self.port = port
 	onReceiveConfirmationMessage.connect(updateConfirmation)
 	Connect()
+
 	
 func _get_rpc_id():
 	++__rpc_id
@@ -46,9 +50,18 @@ func _get_rpc_id():
 	
 # _process in use
 func onRecord():
+	# 心跳,减少心跳发送频率，如果已发送其他消息则延缓发送心跳
+	var _time = Time.get_ticks_msec()
+	if lastHeartbeat + heartbeat_interval < _time:
+		lastHeartbeat = _time
+		# 发送心跳包
+		var pingMsg = apiProto.Ping.new()
+		pingMsg.set_sent_at(lastHeartbeat)
+		sendGudpMessage(apiProto.gudp_message_type.PING, pingMsg.to_bytes())
+		
 	if socket.get_available_packet_count() > 0:
 		var packet = socket.get_packet()
-		print("debug:: Received message:", packet)
+#		print("debug:: Received message:", packet)
 		var msg_type = parse_record(packet)
 		print("msg_type:",msg_type)
 		match msg_type:
@@ -66,11 +79,8 @@ func onRecord():
 						print("获取到的cookie为",_cookie)
 						sendHandMessage(hand.to_bytes())
 					
-			apiProto.gudp_message_type.PING:
-				print("收到ping")
-				
 			apiProto.gudp_message_type.PONG:
-				print("收到pong")
+				pass
 				
 			apiProto.gudp_message_type.RPCMESSAGE:
 				print("收到了rpc消息")
@@ -86,7 +96,6 @@ func onRecord():
 			apiProto.gudp_message_type.RELIABLEMESSAGE:
 				print("收到可靠消息",packet)
 				# 接收到消息，需要考虑是否进行排序后再返回给用户侧
-
 				var reliableMsg = apiProto.ReliableMessage.new()
 				var result_code = reliableMsg.from_bytes(packet)
 				if result_code == apiProto.PB_ERR.NO_ERRORS:
